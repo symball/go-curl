@@ -4,7 +4,7 @@
 import os
 import re
 
-CURL_GIT_PATH = os.environ.get("CURL_GIT_PATH", './curl')
+CURL_GIT_PATH = os.environ.get("CURL_GIT_PATH", './misc/curl')
 
 target_dirs = [
     '{}/include/curl'.format(CURL_GIT_PATH),
@@ -30,17 +30,22 @@ def version_symbol(ver):
     infos = []
     vers = []
     auths = []
-    init_pattern = re.compile(r'CINIT\((.*?),\s*(LONG|OBJECTPOINT|FUNCTIONPOINT|STRINGPOINT|OFF_T),\s*(\d+)\)')
-    error_pattern = re.compile('^\s+(CURLE_[A-Z_0-9]+),')
-    info_pattern = re.compile('^\s+(CURLINFO_[A-Z_0-9]+)\s+=')
+    init_pattern = re.compile(r'CINIT\((.*?),\s+(LONG|OBJECTPOINT|FUNCTIONPOINT|STRINGPOINT|OFF_T),\s+(\d+)\)')
+    init_pattern2 = re.compile(r'CURLOPT(?:DEPRECATED)?\(CURLOPT_(\w+),')
+    error_pattern = re.compile('^\s+(CURLE_[A-Z_0-9]+)(?: = 0)*,')
+    info_pattern = re.compile('^\s+(CURLINFO_[A-Z_0-9]+)(?:$|\s+(?:=|CURL_DEPRECATED))')
+
     with open(os.path.join(CURL_GIT_PATH, 'include', 'curl', 'curl.h')) as f:
         for line in f:
             match = init_pattern.findall(line)
             if match:
-                opts.append("CURLOPT_" + match[0][0])
+                opts.append(match[0][0])
+            match = init_pattern2.findall(line)
+            if match:
+                opts.append(match[0])
             if line.startswith('#define CURLOPT_'):
                 o = line.split()
-                opts.append(o[1])
+                opts.append(o[1])  # strip :(
 
             if line.startswith('#define CURLAUTH_'):
                 a = line.split()
@@ -117,6 +122,6 @@ if __name__ == '__main__':
 result.append("#error your version is TOOOOOOOO low")
 
 result.extend(result_tail)
-
+os.system('cd "{}" && git status --porcelain && git checkout -f "{}"'.format(CURL_GIT_PATH, versions[0]))
 with open("./compat.h", 'w', encoding='utf-8') as fp:
     fp.write('\n'.join(result))

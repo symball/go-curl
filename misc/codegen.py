@@ -7,7 +7,7 @@ import re
 CURL_GIT_PATH = os.environ.get("CURL_GIT_PATH", './curl')
 
 target_dirs = [
-    '{}/include/curl'.format(CURL_GIT_PATH),
+    './misc/{}/include/curl'.format(CURL_GIT_PATH),
     '/usr/local/include',
     'libdir/gcc/target/version/include'
     '/usr/target/include',
@@ -27,14 +27,19 @@ codes = []
 infos = []
 auths = []
 init_pattern = re.compile(r'CINIT\((.*?),\s+(LONG|OBJECTPOINT|FUNCTIONPOINT|STRINGPOINT|OFF_T),\s+(\d+)\)')
-error_pattern = re.compile('^\s+(CURLE_[A-Z_0-9]+),')
-info_pattern = re.compile('^\s+(CURLINFO_[A-Z_0-9]+)\s+=')
+init_pattern2 = re.compile(r'CURLOPT(?:DEPRECATED)?\(CURLOPT_(\w+),')
+error_pattern = re.compile('^\s+(CURLE_[A-Z_0-9]+)(?: = 0)*,')
+info_pattern = re.compile('^\s+(CURLINFO_[A-Z_0-9]+)(?:$|\s+(?:=|CURL_DEPRECATED))')
 
+print("use curl.h from ", get_curl_path())
 with open(get_curl_path()) as f:
     for line in f:
         match = init_pattern.findall(line)
         if match:
             opts.append(match[0][0])
+        match = init_pattern2.findall(line)
+        if match:
+            opts.append(match[0])
         if line.startswith('#define CURLOPT_'):
             o = line.split()
             opts.append(o[1][8:])  # strip :(
