@@ -1,3 +1,3 @@
-module github.com/siody/go-curl
+module github.com/symball/go-curl
 
 go 1.21.5
